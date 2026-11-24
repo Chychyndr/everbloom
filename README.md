@@ -1,4 +1,4 @@
-# Flower
+# <img src="favicon.svg" alt="" width="32" height="32"> Everbloom
 
 A procedural gallery of animated ASCII flowers on a black background.
 
