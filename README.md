@@ -5,6 +5,7 @@ A procedural gallery of animated ASCII flowers on a black background.
 ## Features
 
 - Ten flower compositions rendered with projected 3D particles.
+- Animated ASCII composition titles and species-specific stems and foliage.
 - Animated growth, rotation, pollen and particle transitions.
 - Automatic cycling every 24 seconds; click or tap to skip.
 - Pointer parallax, responsive layout and reduced-motion support.
