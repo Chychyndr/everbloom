@@ -51,6 +51,9 @@ function leaf(x,y,z,side,len,angle,shape=.26,color=green,arch=0){
 }
 // Each profile defines stem height, curvature, thickness and leaf geometry.
 const stems={
+ Lotus:{x:0,y:42,bend:31,twist:-13,r:3.5,c:[102,189,134],leaves:[[.15,-1,83,.16,.48],[.18,1,63,.25,.45]]},
+ Sakura:{x:108,y:142,bend:-28,twist:12,r:7,c:[153,104,86],leaves:[[.44,-1,35,.8,.24],[.65,1,28,.6,.22]]},
+ Lavender:{x:0,y:164,bend:7,twist:5,r:1.8,c:[122,177,116],leaves:[[.18,-1,39,.93,.075],[.18,1,35,.86,.075],[.34,-1,32,.91,.075],[.49,1,29,.88,.075]]},
  Rose:{x:-20,y:102,bend:30,twist:-10,r:4.5,c:[82,161,76],leaves:[[.27,-1,77,.66,.32],[.46,1,68,.62,.30],[.65,-1,47,.62,.28]]},
  Sunflower:{x:7,y:136,bend:-7,twist:2,r:8,c:[122,190,74],leaves:[[.22,-1,101,.43,.37],[.44,1,108,.49,.38],[.61,-1,68,.65,.33]]},
  Orchid:{x:47,y:119,bend:-39,twist:6,r:2.7,c:[91,167,100],leaves:[[.06,-1,132,.54,.24,20],[.12,1,114,.43,.25,24]]},
@@ -185,7 +188,7 @@ function paint(now){
  if(motion.matches)age=9;
  px=mix(px,tx,.055);py=mix(py,ty,.055);
  const angle=motion.matches?.22:Math.sin(age*.37)*.42+px*.28,cos=Math.cos(angle),sin=Math.sin(angle);
- const scale=size/660, exit=motion.matches?0:ease((age-20)/4);
+ const scale=size/745, exit=motion.matches?0:ease((age-20)/4);
  ctx.fillStyle="#000";ctx.fillRect(0,0,size,size);
  const glyphSize=Math.max(4.2,Math.min(9,size/93));
  ctx.font="bold "+glyphSize+"px ui-monospace,Consolas,monospace";ctx.textAlign="center";ctx.textBaseline="middle";
