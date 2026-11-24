@@ -1,17 +1,22 @@
 # Flower
 
-A single-page animation inspired by the reference video. Colorful ASCII flowers grow into a rotating bouquet against a pure black background.
+A procedural ASCII animation of a growing, rotating flower bouquet on a black background.
+
+## Features
+
+- Colored character rendering with Canvas 2D.
+- Procedural flower growth and rotation.
+- Responsive layout and reduced-motion support.
+- No external assets or dependencies.
 
 ## Run locally
 
-Open `index.html` in a browser. No dependencies, build step, Python, or external assets are needed.
+Open `index.html` in a modern browser.
 
-## GitHub Pages
+## Deployment
 
-In the repository, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, then **main / (root)** and **Save**.
+Deploy the root directory of the `main` branch using GitHub Pages. No build step is required.
 
-The repository was private when the site was created. GitHub Pages for private repositories requires an eligible paid GitHub plan; otherwise change the repository visibility to public if appropriate.
+## Stack
 
-## Animation
-
-Canvas draws a procedural bouquet, then converts its colors into character art. The bouquet assembles once and continues rotating. The page adapts to the screen and respects reduced-motion settings.
+HTML, CSS, JavaScript, and Canvas 2D.
