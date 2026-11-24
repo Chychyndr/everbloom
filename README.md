@@ -17,10 +17,6 @@ A procedural gallery of animated ASCII flowers on a black background.
 
 Open `index.html` in a modern browser.
 
-## Deployment
-
-Deploy the root directory using GitHub Pages. No build step is required.
-
 ## Stack
 
 HTML, CSS, JavaScript, and Canvas 2D.
