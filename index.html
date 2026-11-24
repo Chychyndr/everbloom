@@ -34,13 +34,44 @@ const seed=Math.random()*1000;
 let points=[],current=0,begin=performance.now(),size=1,px=0,py=0,tx=0,ty=0,raf=0;
 const motion=matchMedia("(prefers-reduced-motion: reduce)");
 function add(x,y,z,c,l=1,birth=0){const i=points.length;points.push({x,y,z,c,l,birth,r:rand(i+seed),a:rand(i+13)*TAU,v:rand(i+78)});}
-function tube(ax,ay,az,bx,by,bz,c,radius=2,count=180){
- for(let i=0;i<count;i++){const u=i/(count-1),a=i*golden;add(mix(ax,bx,u)+Math.cos(a)*radius,mix(ay,by,u),mix(az,bz,u)+Math.sin(a)*radius,c,.65+.35*rand(i),u*.8);}
+function tube(ax,ay,az,bx,by,bz,c,radius=2,count=180,bend=0,twist=0,taper=.5){
+ const path=u=>[mix(ax,bx,u)+bend*Math.sin(Math.PI*u)+twist*Math.sin(TAU*u),mix(ay,by,u),mix(az,bz,u)+bend*.13*Math.sin(Math.PI*u)];
+ for(let i=0;i<count;i++){
+  const u=i/(count-1),a=i*golden,[x,y,z]=path(u),r=radius*(1-taper*u);
+  add(x+Math.cos(a)*r,y,z+Math.sin(a)*r,c,.65+.35*rand(i),u*.8);
+ }
+ return path;
 }
-function leaf(x,y,z,side,len,angle){
- for(let i=0;i<420;i++){const u=rand(i+10),v=rand(i+19)*2-1,w=Math.sin(Math.PI*u)*len*.26;
- const along=u*len, across=v*w;
- add(x+side*(along*Math.cos(angle)-across*Math.sin(angle)),y+along*Math.sin(angle)+across*Math.cos(angle),z+Math.sin(u*Math.PI)*12+v*5,green,.5+.5*(1-Math.abs(v)),.6+u*.4);}
+function leaf(x,y,z,side,len,angle,shape=.26,color=green,arch=0){
+ for(let i=0;i<Math.max(70,Math.round(len*5));i++){
+  const u=rand(i+10),v=rand(i+19)*2-1,w=Math.sin(Math.PI*u)**.8*len*shape;
+  const along=u*len,across=v*w;
+  add(x+side*(along*Math.cos(angle)-across*Math.sin(angle)),y+along*Math.sin(angle)+across*Math.cos(angle)+arch*Math.sin(Math.PI*u),z+Math.sin(u*Math.PI)*12+v*5,color,.5+.5*(1-Math.abs(v)),.6+u*.4);
+ }
+}
+// Each profile defines stem height, curvature, thickness and leaf geometry.
+const stems={
+ Rose:{x:-20,y:102,bend:30,twist:-10,r:4.5,c:[82,161,76],leaves:[[.27,-1,77,.66,.32],[.46,1,68,.62,.30],[.65,-1,47,.62,.28]]},
+ Sunflower:{x:7,y:136,bend:-7,twist:2,r:8,c:[122,190,74],leaves:[[.22,-1,101,.43,.37],[.44,1,108,.49,.38],[.61,-1,68,.65,.33]]},
+ Orchid:{x:47,y:119,bend:-39,twist:6,r:2.7,c:[91,167,100],leaves:[[.06,-1,132,.54,.24,20],[.12,1,114,.43,.25,24]]},
+ Tulip:{x:-17,y:108,bend:16,twist:0,r:5,c:[105,194,104],leaves:[[.12,-1,158,1.12,.13,12],[.28,1,133,1.01,.14,16]]},
+ Daisy:{x:25,y:91,bend:-19,twist:12,r:1.7,c:[123,184,91],leaves:[[.13,-1,65,.45,.15],[.21,1,56,.55,.14],[.33,-1,39,.58,.14]]},
+ "Blue poppy":{x:-39,y:122,bend:32,twist:20,r:2.8,c:[85,158,110],leaves:[[.32,1,79,.45,.25],[.53,-1,66,.62,.22],[.72,1,38,.68,.19]]}
+};
+function individualStem(name,x,y,z,baseX=0,baseY=-210,baseZ=0,k=1){
+ const p=stems[name]||stems.Daisy;
+ const path=tube(baseX,baseY,baseZ,x,y,z,p.c,p.r*k,Math.max(120,Math.round(330*k)),p.bend*k,p.twist*k,.55);
+ for(const [u,side,len,angle,shape,arch=0] of p.leaves){
+  const [lx,ly,lz]=path(u);
+  leaf(lx,ly,lz,side,len*k,angle,shape,p.c,arch*k);
+ }
+ if(name==="Rose"){
+  for(const [u,side] of [[.19,1],[.38,-1],[.57,1],[.76,-1]]){
+   const [lx,ly,lz]=path(u);
+   for(let j=0;j<18;j++){const t=j/17;add(lx+side*t*9*k,ly+t*7*k,lz,p.c,.7,.7+u*.25);}
+  }
+ }
+ return path;
 }
 function head(x,y,z,r,p,birth=1){
  const [name,color,n,layers,length,wide,cup]=p;
@@ -71,21 +102,80 @@ function head(x,y,z,r,p,birth=1){
 function build(index){
  points=[];const p=presets[index],name=p[0];
  if(name==="Sakura"){
- tube(-165,-185,0,105,154,0,[139,93,79],4,350);
- for(let j=0;j<7;j++){const u=j/7,x=-145+u*245,y=-130+u*255,side=j%2?1:-1;const hx=x+side*55,hy=y+48;tube(x,y,0,hx,hy,12,[139,93,79],2,90);head(hx,hy,12,35,p,.6+j*.22);}
+  const wood=[153,104,86];
+  const trunk=tube(-158,-185,-7,108,142,0,wood,7,360,-28,12,.82);
+  for(let j=0;j<7;j++){
+   const u=.16+j*.119,[x,y,z]=trunk(u),side=j%2?1:-1;
+   const hx=x+side*(40+18*rand(j)),hy=y+30+15*rand(j+5);
+   tube(x,y,z,hx,hy,12,wood,2.8,100,side*9,-side*5,.75);
+   head(hx,hy,12,34,p,.6+j*.22);
+  }
  }else if(name==="Lavender"){
- for(let j=0;j<5;j++){const x=(j-2)*53,h=165-22*Math.abs(j-2);tube(x*.35,-205,0,x,h,0,green,2,170);leaf(x*.55,-65,0,j%2?1:-1,62,.7);
- for(let k=0;k<7;k++){const yy=h-k*22;head(x+(k%2?8:-8),yy,5,13+(k%3)*2,p,.7+k*.13);}}
+  for(let j=0;j<5;j++){
+   const x=(j-2)*53,h=164-22*Math.abs(j-2),c=[122,177,116];
+   const path=tube(x*.22,-205,-5,x,h,0,c,1.8,210,(j-2)*7,5*(j%2?1:-1),.45);
+   for(const u of [.18,.34,.49]){
+    const [lx,ly,lz]=path(u);
+    leaf(lx,ly,lz,-1,39,.93,.075,c);
+    leaf(lx,ly,lz,1,35,.86,.075,c);
+   }
+   for(let k=0;k<7;k++){
+    const u=1-k*.06,[lx,ly,lz]=path(u);
+    head(lx+(k%2?8:-8),ly,lz+5,12+(k%3)*2,p,.7+k*.13);
+   }
+  }
  }else if(name==="Bouquet"){
- for(let j=0;j<9;j++){const a=j*golden,x=Math.cos(a)*(j?110:0),z=Math.sin(a)*70,y=106+40*Math.sin(j*2);
- tube(x*.12,-110,0,x,y,z,green,2,150);leaf(x*.5,-30,z*.5,j%2?1:-1,55,.65);head(x,y,z,43,presets[j%9],.4+j*.24);}
- for(let i=0;i<1100;i++){const u=rand(i),a=rand(i+5)*TAU,r=30+34*Math.sin(Math.PI*u);add(Math.cos(a)*r,-110-u*118,Math.sin(a)*r,[109,132,219],.5+.5*Math.cos(a),1+u);}
+  for(let j=0;j<9;j++){
+   const a=j*golden,x=Math.cos(a)*(j?110:0),z=Math.sin(a)*70,y=106+40*Math.sin(j*2),species=presets[j];
+   individualStem(species[0],x,y,z,x*.12,-110,0,.51);
+   head(x,y,z,43,species,.4+j*.24);
+  }
+  for(let i=0;i<1100;i++){const u=rand(i),a=rand(i+5)*TAU,r=30+34*Math.sin(Math.PI*u);add(Math.cos(a)*r,-110-u*118,Math.sin(a)*r,[109,132,219],.5+.5*Math.cos(a),1+u);}
+ }else if(name==="Lotus"){
+  for(let i=0;i<1150;i++){
+   const a=rand(i)*TAU,u=Math.sqrt(rand(i+3));if(a>.12&&a<.50)continue;
+   add(Math.cos(a)*u*145,-108+Math.sin(a)*u*30,Math.sin(a)*u*60,[83,169,118],.5+.5*u,.5);
+  }
+  tube(-27,-110,-4,0,42,0,[102,189,134],3.5,230,34,-13,.27);
+  head(0,42,0,108,p,.6);
  }else{
- const r=name==="Sunflower"?117:name==="Lotus"?108:96;
- const y=name==="Lotus"?42:105;
- if(name==="Lotus"){for(let i=0;i<900;i++){const a=rand(i)*TAU,u=Math.sqrt(rand(i+3));add(Math.cos(a)*u*145,-108+Math.sin(a)*u*30,Math.sin(a)*u*60,green,.5+.5*u,.5);}tube(0,-110,0,0,y,0,green,3);}
- else{tube(0,-210,0,0,y,0,green,3,300);leaf(0,-86,0,-1,103,.62);leaf(0,-30,0,1,93,.56);}
- head(0,y,0,r,p,.6);
+  const q=stems[name],r=name==="Sunflower"?117:96;
+  individualStem(name,q.x,q.y,0);
+  head(q.x,q.y,0,r,p,.6);
+ }
+}
+const alphabet={
+ A:[14,17,17,31,17,17,17],B:[30,17,17,30,17,17,30],C:[14,17,16,16,16,17,14],
+ D:[30,17,17,17,17,17,30],E:[31,16,16,30,16,16,31],F:[31,16,16,30,16,16,16],
+ H:[17,17,17,31,17,17,17],I:[31,4,4,4,4,4,31],K:[17,18,20,24,20,18,17],
+ L:[16,16,16,16,16,16,31],N:[17,25,21,19,17,17,17],O:[14,17,17,17,17,17,14],
+ P:[30,17,17,30,16,16,16],Q:[14,17,17,17,21,18,13],R:[30,17,17,30,20,18,17],
+ S:[15,16,16,14,1,1,30],T:[31,4,4,4,4,4,4],U:[17,17,17,17,17,17,14],
+ V:[17,17,17,17,17,10,4],W:[17,17,17,21,21,21,10],Y:[17,17,10,4,4,4,4]
+};
+function titlePoints(name){
+ const chars=name.toUpperCase().split(""),out=[];
+ let cursor=0;
+ for(const char of chars){
+  if(char===" "){cursor+=3;continue;}
+  const rows=alphabet[char];if(!rows)throw Error("Unsupported title character: "+char);
+  rows.forEach((row,y)=>{for(let x=0;x<5;x++)if(row&(1<<(4-x)))out.push([cursor+x,y]);});
+  cursor+=6;
+ }
+ return {out,width:cursor-1};
+}
+const titles=presets.map(p=>titlePoints(p[0]));
+function drawTitle(age,exit){
+ const {out,width}=titles[current],color=presets[current][1];
+ const cell=Math.min(size*.0105,size*.76/width,8.5);
+ const left=(size-(width-1)*cell)/2,top=size*.085;
+ const g=motion.matches?1:ease((age-.15)/1.5)*(1-exit);
+ ctx.font="bold "+Math.max(3,cell*1.25)+"px ui-monospace,Consolas,monospace";
+ ctx.textAlign="center";ctx.textBaseline="middle";
+ for(let i=0;i<out.length;i++){
+  const [x,y]=out[i],a=g*(.77+.23*rand(i+11));
+  ctx.fillStyle="rgba("+color.map(c=>Math.round(c*.62+97)).join(",")+","+a+")";
+  ctx.fillText(i%7===0?"*":"#",left+x*cell,top+y*cell);
  }
 }
 function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);size=Math.max(1,rect.width);canvas.width=Math.round(size*dpr);canvas.height=Math.round(size*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
@@ -95,7 +185,7 @@ function paint(now){
  if(motion.matches)age=9;
  px=mix(px,tx,.055);py=mix(py,ty,.055);
  const angle=motion.matches?.22:Math.sin(age*.37)*.42+px*.28,cos=Math.cos(angle),sin=Math.sin(angle);
- const scale=size/565, exit=motion.matches?0:ease((age-20)/4);
+ const scale=size/660, exit=motion.matches?0:ease((age-20)/4);
  ctx.fillStyle="#000";ctx.fillRect(0,0,size,size);
  const glyphSize=Math.max(4.2,Math.min(9,size/93));
  ctx.font="bold "+glyphSize+"px ui-monospace,Consolas,monospace";ctx.textAlign="center";ctx.textBaseline="middle";
@@ -107,8 +197,8 @@ function paint(now){
  const x=p.x*g+sway+Math.cos(p.a)*scatter*(60+p.v*220),y=p.y*g+Math.sin(p.a)*scatter*(60+p.v*220),z=p.z*g+exit*p.r*100;
  const rx=x*cos-z*sin,rz=x*sin+z*cos,ry=y+rz*py*.14;
  const perspective=620/(620-rz),breath=motion.matches?1:1+.014*Math.sin(age*1.15);
- const sx=size/2+rx*perspective*scale*breath,sy=size/2-ry*perspective*scale*breath;
- if(sx<0||sy<0||sx>size||sy>size)continue;
+ const sx=size/2+rx*perspective*scale*breath,sy=size*.57-ry*perspective*scale*breath;
+ if(sx<0||sy<size*.19||sx>size||sy>size)continue;
  const ix=Math.round(sx/step),iy=Math.round(sy/vertical),key=ix+":"+iy;
  const old=cells.get(key);
  if(!old||rz>old.z)cells.set(key,{p,z:rz,x:ix*step,y:iy*vertical,g});
@@ -123,11 +213,12 @@ function paint(now){
  if(!motion.matches){
  for(let i=0;i<35;i++){
  const u=(age*.075+rand(i+200))%1,a=i*golden;
- const x=size/2+Math.cos(a+age*.12)*(90+rand(i)*110)*scale,y=size/2+(u-.5)*350*scale;
+ const x=size/2+Math.cos(a+age*.12)*(90+rand(i)*110)*scale,y=size*.57+(u-.5)*350*scale;
  ctx.fillStyle="rgba("+presets[current][1].join(",")+","+(Math.sin(u*Math.PI)*.28*(1-exit))+")";
  ctx.fillText(i%3? ".":"+",x,y);
  }
  }
+ drawTitle(age,exit);
 }
 function frame(now){paint(now);if(!motion.matches&&!document.hidden)raf=requestAnimationFrame(frame);}
 function restart(){cancelAnimationFrame(raf);resize();frame(performance.now());}
