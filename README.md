@@ -1,36 +1,17 @@
 # Flower
 
-A terminal animation inspired by a reference video: a growing, rotating bouquet made from colored ASCII characters. Also plays local video files as ASCII art or Unicode half-blocks.
+A single-page animation inspired by the reference video. Colorful ASCII flowers grow into a rotating bouquet against a pure black background.
 
-The built-in bouquet is generated in Python; no video or image assets are required. It is an approximation of the reference animation, not a copy of its original 3D scene.
+## Run locally
 
-## Run
+Open `index.html` in a browser. No dependencies, build step, Python, or external assets are needed.
 
-Install [uv](https://docs.astral.sh/uv/), then:
+## GitHub Pages
 
-```sh
-git clone https://github.com/Chychyndr/flower.git
-cd flower
-uv sync
-uv run python ascii_player.py
-```
+In the repository, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy from a branch**, then **main / (root)** and **Save**.
 
-Use Windows Terminal / PowerShell, macOS Terminal or a Linux terminal with ANSI truecolor support. A dark background and a small monospace font give the best result. Press Ctrl+C to exit.
+The repository was private when the site was created. GitHub Pages for private repositories requires an eligible paid GitHub plan; otherwise change the repository visibility to public if appropriate.
 
-## Options
+## Animation
 
-```sh
-uv run python ascii_player.py --width 120 --fps 30
-uv run python ascii_player.py --mode blocks
-uv run python ascii_player.py --no-color
-uv run python ascii_player.py --once
-uv run python ascii_player.py path/to/video.mp4 --once
-```
-
-Video playback is silent and loops by default. Terminal size is detected automatically. ASCII mode maps luminance to characters, applies optional Sobel edge detection, and emits RGB ANSI sequences. Block mode combines two vertical pixels per character. Only changed rows are redrawn.
-
-## Tests
-
-```sh
-uv run pytest
-```
+Canvas draws a procedural bouquet, then converts its colors into character art. The bouquet assembles once and continues rotating. The page adapts to the screen and respects reduced-motion settings.
