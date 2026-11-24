@@ -3,19 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="only dark">
+<meta name="darkreader-lock">
+<meta name="theme-color" content="#000000">
 <title>Everbloom</title>
 <link rel="icon" type="image/svg+xml" href="./favicon.svg">
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000}body{display:grid;place-items:center;height:100dvh}canvas{width: min(96vw,86dvh,850px);height:auto;aspect-ratio:1;display:block;touch-action:manipulation}
 [hidden]{display:none!important}
-#stage{position:fixed;inset:0;display:grid;place-items:center}
+#stage{position:fixed;inset:0;display:grid;place-items:center;padding:calc(58px + env(safe-area-inset-top)) 0 calc(68px + env(safe-area-inset-bottom));}
+#art{width:min(96vw,calc(100dvh - 126px - env(safe-area-inset-top) - env(safe-area-inset-bottom)),850px);min-width:0;min-height:0}
 #galleryButton,#closeGallery,#replayGallery{font:500 13px ui-monospace,Consolas,monospace;color:#ddd;background:#090909;border:1px solid #333;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s,background .2s;touch-action:manipulation}
-#galleryButton{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:11px 24px;letter-spacing:.08em}
+#galleryButton{position:absolute;z-index:1;top:calc(12px + env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));min-height:42px;padding:9px 18px;letter-spacing:.04em}
 #galleryButton:hover,#closeGallery:hover,#replayGallery:hover{border-color:#888;color:#fff;background:#151515}
-#gallery{position:fixed;inset:0;overflow:auto;background:#000;padding:64px clamp(12px,3vw,44px) 28px;overscroll-behavior:contain}
-#closeGallery{position:fixed;z-index:2;top:16px;right:clamp(12px,3vw,44px);width:38px;height:38px;font-size:23px;line-height:1}
-#replayGallery{position:fixed;z-index:2;top:16px;left:clamp(12px,3vw,44px);height:38px;padding:0 18px;letter-spacing:.04em}
+#gallery{position:fixed;inset:0;overflow:auto;background:#000;padding:calc(66px + env(safe-area-inset-top)) clamp(12px,3vw,44px) calc(28px + env(safe-area-inset-bottom));overscroll-behavior:contain}
+#gallery::before{content:"";position:fixed;z-index:1;inset:0 0 auto;height:calc(64px + env(safe-area-inset-top));background:#000;pointer-events:none}
+#closeGallery{position:fixed;z-index:2;top:calc(12px + env(safe-area-inset-top));right:clamp(12px,3vw,44px);width:42px;height:42px;font-size:23px;line-height:1}
+#replayGallery{position:fixed;z-index:2;top:calc(12px + env(safe-area-inset-top));left:clamp(12px,3vw,44px);height:42px;padding:0 18px;letter-spacing:.04em}
 #cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;max-width:1360px;margin:auto}
 .flower-card{padding:0;border:1px solid #222;border-radius:13px;background:#000;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .2s;min-width:0;touch-action:manipulation}
 .flower-card:hover{border-color:var(--accent);transform:translateY(-2px)}
@@ -24,11 +28,10 @@ button:focus-visible{outline:2px solid #ddd;outline-offset:3px}
 @media(max-width:1150px){#cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1000px){#cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:450px){#cards{grid-template-columns:1fr;max-width:330px}}
+@media(max-width:450px){#cards{grid-template-columns:1fr;max-width:430px}}
 @media(prefers-reduced-motion:reduce){.flower-card,#galleryButton,#closeGallery,#replayGallery{transition:none}.flower-card:hover{transform:none}}
-#dedication{position:absolute;bottom:max(25px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 36px);margin:0;padding:8px 0;color:#d4c6c8;text-align:center;font:italic 400 clamp(15px,2.6vw,24px)/1.4 Georgia,serif;letter-spacing:.025em}
-#galleryButton{bottom:max(76px,calc(env(safe-area-inset-bottom) + 70px))}
-@media(max-height:600px){#stage{padding-bottom:110px}#stage canvas{width:min(96vw,calc(100dvh - 120px),850px)}}
+#dedication{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 36px);margin:0;padding:8px 0;color:#d4c6c8;text-align:center;font:italic 400 clamp(15px,2.6vw,24px)/1.4 Georgia,serif;letter-spacing:.025em}
+@media(max-width:720px) and (orientation:portrait){#art{width:min(98vw,520px);height:min(150vw,calc(100dvh - 126px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));aspect-ratio:auto}#dedication{font-size:clamp(16px,4.4vw,22px)}}
 </style>
 </head>
 <body><main id="stage"><canvas id="art" tabindex="-1" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button><p id="dedication">for you, in every season</p></main>
@@ -191,9 +194,9 @@ function titlePoints(name){
  return {out,width:cursor-1};
 }
 const titles=presets.map(p=>titlePoints(p[0]));
-function drawTitle(ctx,size,current,age,exit){
+function drawTitle(ctx,size,current,age,exit,compact=false){
  const {out,width}=titles[current],color=presets[current][1];
- const cell=Math.min(size*.0105,size*.76/width,8.5);
+ const cell=Math.min(size*(compact?.013:.0105),size*.80/width,8.5);
  const left=(size-(width-1)*cell)/2,top=size*.085;
  const g=motion.matches?1:ease((age-.15)/1.5)*(1-exit);
  ctx.font="bold "+Math.max(3,cell*1.25)+"px ui-monospace,Consolas,monospace";
@@ -204,12 +207,37 @@ function drawTitle(ctx,size,current,age,exit){
   ctx.fillText(i%7===0?"*":"#",left+x*cell,top+y*cell);
  }
 }
-function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);size=Math.max(1,rect.width);canvas.width=Math.round(size*dpr);canvas.height=Math.round(size*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
-function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=false){
+let sceneHeight=1;
+const portrait=matchMedia("(max-width:720px) and (orientation:portrait)");
+const boundsCache=new WeakMap();
+function sceneBounds(points){
+ if(boundsCache.has(points))return boundsCache.get(points);
+ let left=Infinity,right=-Infinity,top=-Infinity,bottom=Infinity;
+ // Reserve enough space for the full rotation and pointer parallax range.
+ for(let a=-.7;a<=.71;a+=.175){
+  const c=Math.cos(a),s=Math.sin(a);
+  for(const p of points){
+   const x=p.x*c-p.z*s,z=p.x*s+p.z*c,k=620/(620-z);
+   const y=p.y*k,drift=Math.abs(z*.14*k);
+   left=Math.min(left,x*k);right=Math.max(right,x*k);
+   bottom=Math.min(bottom,y-drift);top=Math.max(top,y+drift);
+  }
+ }
+ const bounds={left,right,top,bottom};boundsCache.set(points,bounds);return bounds;
+}
+function layoutScene(points,width,height,compact,preview){
+ if(!compact)return {scale:width/745,x:width/2,y:height*.57,top:width*.19};
+ const b=sceneBounds(points),top=width*.22,bottom=height-width*.055;
+ const scale=Math.min(width/745*(preview?1.35:1.7),width*.85/Math.max(1,b.right-b.left),(bottom-top)*.91/Math.max(1,b.top-b.bottom));
+ return {scale,x:width/2-(b.left+b.right)*scale/2,y:(top+bottom)/2+(b.top+b.bottom)*scale/2,top};
+}
+function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);size=Math.max(1,rect.width);sceneHeight=Math.max(1,rect.height);canvas.width=Math.round(size*dpr);canvas.height=Math.round(sceneHeight*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=false,height=size){
  const angle=motion.matches?.22:Math.sin(age*.37)*.42+px*.28,cos=Math.cos(angle),sin=Math.sin(angle);
- const scale=size/745, exit=motion.matches||hold?0:ease((age-20)/4);
- ctx.fillStyle="#000";ctx.fillRect(0,0,size,size);
- const glyphSize=Math.max(2.5,Math.min(9,size/93));
+ const compact=portrait.matches;
+ const layout=layoutScene(points,size,height,compact,preview),scale=layout.scale, exit=motion.matches||hold?0:ease((age-20)/4);
+ ctx.fillStyle="#000";ctx.fillRect(0,0,size,height);
+ const glyphSize=Math.max(2.5,Math.min(9,scale*745/93));
  ctx.font="bold "+glyphSize+"px ui-monospace,Consolas,monospace";ctx.textAlign="center";ctx.textBaseline="middle";
  const cells=new Map(),step=glyphSize*.73,vertical=glyphSize*1.14;
  for(const p of points){
@@ -219,8 +247,8 @@ function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=fa
  const x=p.x*g+sway+Math.cos(p.a)*scatter*(60+p.v*220),y=p.y*g+Math.sin(p.a)*scatter*(60+p.v*220),z=p.z*g+exit*p.r*100;
  const rx=x*cos-z*sin,rz=x*sin+z*cos,ry=y+rz*py*.14;
  const perspective=620/(620-rz),breath=motion.matches?1:1+.014*Math.sin(age*1.15);
- const sx=size/2+rx*perspective*scale*breath,sy=size*.57-ry*perspective*scale*breath;
- if(sx<0||sy<size*.19||sx>size||sy>size)continue;
+ const sx=layout.x+rx*perspective*scale*breath,sy=layout.y-ry*perspective*scale*breath;
+ if(sx<0||sy<layout.top||sx>size||sy>height)continue;
  const ix=Math.round(sx/step),iy=Math.round(sy/vertical),key=ix+":"+iy;
  const old=cells.get(key);
  if(!old||rz>old.z)cells.set(key,{p,z:rz,x:ix*step,y:iy*vertical,g});
@@ -235,12 +263,12 @@ function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=fa
  if(!motion.matches){
  for(let i=0;i<35;i++){
  const u=(age*.075+rand(i+200))%1,a=i*golden;
- const x=size/2+Math.cos(a+age*.12)*(90+rand(i)*110)*scale,y=size*.57+(u-.5)*350*scale;
+ const x=layout.x+Math.cos(a+age*.12)*(90+rand(i)*110)*scale,y=layout.y+(u-.5)*350*scale;
  ctx.fillStyle="rgba("+presets[current][1].join(",")+","+(Math.sin(u*Math.PI)*.28*(1-exit))+")";
  ctx.fillText(i%3? ".":"+",x,y);
  }
  }
- drawTitle(ctx,size,current,preview?9:age,preview?0:exit);
+ drawTitle(ctx,size,current,preview?9:age,preview?0:exit,compact);
 }
 const stage=document.getElementById("stage"),gallery=document.getElementById("gallery"),galleryButton=document.getElementById("galleryButton"),closeGallery=document.getElementById("closeGallery"),cards=document.getElementById("cards");
 let view="stage",selected=false,finished=false,galleryUnlocked=false,openedAt=0,pausedAt=0,lastPreview=-Infinity;
@@ -259,7 +287,7 @@ function paint(now){
  if(motion.matches)age=9;
  px=mix(px,tx,.055);py=mix(py,ty,.055);
  const hold=!selected&&current===presets.length-1;
- renderScene(ctx,size,current,points,age,px,py,hold);
+ renderScene(ctx,size,current,points,age,px,py,hold,false,sceneHeight);
 }
 function createCards(){
  const saved=points;
