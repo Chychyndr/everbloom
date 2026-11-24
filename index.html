@@ -10,11 +10,12 @@
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000}body{display:grid;place-items:center;height:100dvh}canvas{width: min(96vw,86dvh,850px);height:auto;aspect-ratio:1;display:block;touch-action:manipulation}
 [hidden]{display:none!important}
 #stage{position:fixed;inset:0;display:grid;place-items:center}
-#galleryButton,#closeGallery{font:500 13px ui-monospace,Consolas,monospace;color:#ddd;background:#090909;border:1px solid #333;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s,background .2s;touch-action:manipulation}
+#galleryButton,#closeGallery,#replayGallery{font:500 13px ui-monospace,Consolas,monospace;color:#ddd;background:#090909;border:1px solid #333;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s,background .2s;touch-action:manipulation}
 #galleryButton{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:11px 24px;letter-spacing:.08em}
-#galleryButton:hover,#closeGallery:hover{border-color:#888;color:#fff;background:#151515}
+#galleryButton:hover,#closeGallery:hover,#replayGallery:hover{border-color:#888;color:#fff;background:#151515}
 #gallery{position:fixed;inset:0;overflow:auto;background:#000;padding:64px clamp(12px,3vw,44px) 28px;overscroll-behavior:contain}
 #closeGallery{position:fixed;z-index:2;top:16px;right:clamp(12px,3vw,44px);width:38px;height:38px;font-size:23px;line-height:1}
+#replayGallery{position:fixed;z-index:2;top:16px;left:clamp(12px,3vw,44px);height:38px;padding:0 18px;letter-spacing:.04em}
 #cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;max-width:1360px;margin:auto}
 .flower-card{padding:0;border:1px solid #222;border-radius:13px;background:#000;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .2s;min-width:0;touch-action:manipulation}
 .flower-card:hover{border-color:var(--accent);transform:translateY(-2px)}
@@ -24,14 +25,14 @@ button:focus-visible{outline:2px solid #ddd;outline-offset:3px}
 @media(max-width:1000px){#cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:720px){#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){#cards{grid-template-columns:1fr;max-width:330px}}
-@media(prefers-reduced-motion:reduce){.flower-card,#galleryButton,#closeGallery{transition:none}.flower-card:hover{transform:none}}
+@media(prefers-reduced-motion:reduce){.flower-card,#galleryButton,#closeGallery,#replayGallery{transition:none}.flower-card:hover{transform:none}}
 #dedication{position:absolute;bottom:max(25px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 36px);margin:0;padding:8px 0;color:#d4c6c8;text-align:center;font:italic 400 clamp(15px,2.6vw,24px)/1.4 Georgia,serif;letter-spacing:.025em}
 #galleryButton{bottom:max(76px,calc(env(safe-area-inset-bottom) + 70px))}
 @media(max-height:600px){#stage{padding-bottom:110px}#stage canvas{width:min(96vw,calc(100dvh - 120px),850px)}}
 </style>
 </head>
-<body><main id="stage"><canvas id="art" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button><p id="dedication">for you, in every season</p></main>
-<section id="gallery" aria-label="Flower gallery" hidden><button id="closeGallery" aria-label="Close gallery">×</button><div id="cards"></div></section>
+<body><main id="stage"><canvas id="art" tabindex="-1" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button><p id="dedication">for you, in every season</p></main>
+<section id="gallery" aria-label="Flower gallery" hidden><button id="replayGallery" type="button" aria-label="Replay all flowers">Replay</button><button id="closeGallery" aria-label="Close gallery">×</button><div id="cards"></div></section>
 <script>
 "use strict";
 const canvas=document.querySelector("canvas"),ctx=canvas.getContext("2d",{alpha:false});
@@ -242,7 +243,7 @@ function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=fa
  drawTitle(ctx,size,current,preview?9:age,preview?0:exit);
 }
 const stage=document.getElementById("stage"),gallery=document.getElementById("gallery"),galleryButton=document.getElementById("galleryButton"),closeGallery=document.getElementById("closeGallery"),cards=document.getElementById("cards");
-let view="stage",selected=false,finished=false,openedAt=0,pausedAt=0,lastPreview=-Infinity;
+let view="stage",selected=false,finished=false,galleryUnlocked=false,openedAt=0,pausedAt=0,lastPreview=-Infinity;
 const previews=[];
 function select(index,now=performance.now()){
  current=index;begin=now;build(current);canvas.setAttribute("aria-label",presets[current][0]);
@@ -284,8 +285,12 @@ function paintCards(now){
  }
 }
 function openGallery(){
- if(view==="gallery")return;pausedAt=performance.now();view="gallery";stage.hidden=true;gallery.hidden=false;
+ if(view==="gallery")return;galleryUnlocked=true;pausedAt=performance.now();view="gallery";stage.hidden=true;gallery.hidden=false;
  if(!previews.length)createCards();openedAt=performance.now();lastPreview=-Infinity;resizeCards();gallery.scrollTop=0;restart();closeGallery.focus({preventScroll:true});
+}
+function replay(){
+ selected=false;finished=false;galleryUnlocked=true;px=py=tx=ty=0;select(0);
+ galleryButton.hidden=false;showStage();canvas.focus({preventScroll:true});
 }
 function showStage(resume=false){
  if(resume)begin+=performance.now()-pausedAt;
@@ -300,10 +305,11 @@ canvas.addEventListener("pointermove",e=>{const r=canvas.getBoundingClientRect()
 canvas.addEventListener("pointerleave",()=>{tx=ty=0;});
 canvas.addEventListener("click",()=>{next();if(motion.matches)paint(performance.now());});
 galleryButton.addEventListener("click",openGallery);
+document.getElementById("replayGallery").addEventListener("click",replay);
 closeGallery.addEventListener("click",()=>{showStage(true);galleryButton.focus({preventScroll:true});});
 window.addEventListener("keydown",e=>{if(e.key==="Escape"){if(view==="gallery"){showStage(true);galleryButton.focus({preventScroll:true});}else if(selected)openGallery();}});
 gallery.addEventListener("scroll",()=>{if(motion.matches)paintCards(performance.now());},{passive:true});
-window.addEventListener("resize",restart);motion.addEventListener("change",()=>{galleryButton.hidden=!(finished||selected||motion.matches);restart();});
+window.addEventListener("resize",restart);motion.addEventListener("change",()=>{galleryButton.hidden=!(galleryUnlocked||finished||selected||motion.matches);restart();});
 document.addEventListener("visibilitychange",()=>{cancelAnimationFrame(raf);if(!document.hidden)restart();});
 select(0);if(motion.matches)galleryButton.hidden=false;restart();
 </script></body></html>
