@@ -8,6 +8,8 @@ A procedural gallery of animated ASCII flowers on a black background.
 - Animated ASCII composition titles and species-specific stems and foliage.
 - Animated growth, rotation, pollen and particle transitions.
 - Automatic cycling every 24 seconds; click or tap to skip.
+- An interactive gallery with live animated previews, unlocked after the final composition.
+- Select any flower for full-screen playback; return to the gallery at any time.
 - Pointer parallax, responsive layout and reduced-motion support.
 - No external assets or dependencies.
 
