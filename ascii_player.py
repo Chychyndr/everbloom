@@ -17,8 +17,10 @@ TAU = math.tau
 
 def bouquet(t: float, size: int = 640) -> np.ndarray:
     """Render a rotating bouquet in BGR without external assets."""
-    img = np.zeros((size, size, 3), dtype=np.uint8)
-    s = size / 640
+    if size < 1:
+        raise ValueError("size must be positive")
+    img = np.zeros((640, 640, 3), dtype=np.uint8)
+    s = 1
     def pt(x, y):
         return round(x * s), round(y * s)
     def ellipse(x, y, rx, ry, angle, color):
@@ -73,17 +75,15 @@ def bouquet(t: float, size: int = 640) -> np.ndarray:
     # Vase with a curved silhouette and a moving highlight.
     vg = min(1., max(0., (phase-3)/2))
     if vg:
-        for y in range(438, 575):
-            u = (y-438)/137
-            half = (29 + 30*math.sin(math.pi*u)**1.4)*vg
-            for x in range(round(320-half), round(320+half)+1):
-                nx = (x-320)/max(half, 1)
-                light = .35 + .65*math.sqrt(max(0, 1-nx*nx))
-                shine = .25*math.exp(-((nx+.35+.15*math.sin(angle))/.16)**2)
-                color = tuple(min(255, int(c*(light+shine))) for c in (215, 105, 145))
-                xx, yy = pt(x, y)
-                if 0 <= xx < size and 0 <= yy < size:
-                    img[yy, xx] = color
+        yy, xx = np.mgrid[438:575, 250:391]
+        u = (yy-438)/137
+        half = (29 + 30*np.sin(np.pi*u)**1.4)*vg
+        nx = (xx-320)/np.maximum(half, 1)
+        light = .35 + .65*np.sqrt(np.maximum(0, 1-nx*nx))
+        shine = .25*np.exp(-((nx+.35+.15*math.sin(angle))/.16)**2)
+        colors = np.clip((light+shine)[..., None]*np.array([215,105,145]), 0, 255)
+        mask = np.abs(xx-320) <= half
+        img[438:575, 250:391][mask] = colors[mask].astype(np.uint8)
         ellipse(320, 438, 29*vg, 7, 0, (205, 150, 180))
         ellipse(320, 438, 22*vg, 3, 0, (32, 35, 49))
     # Sparse falling characters above the growing arrangement.
@@ -92,7 +92,7 @@ def bouquet(t: float, size: int = 640) -> np.ndarray:
         x = 320 + 20*math.sin(i*1.8)
         if y < 130 + 40*math.sin(i):
             ellipse(x, y, 1, 2, 0, (75, 47, 32))
-    return img
+    return img if size == 640 else cv2.resize(img, (size, size), interpolation=cv2.INTER_AREA)
 
 
 class Renderer:
@@ -105,7 +105,7 @@ class Renderer:
     def convert(self, frame: np.ndarray, cols: int, rows: int) -> list[str]:
         """Fit an image inside a terminal grid, preserving visual aspect ratio."""
         h, w = frame.shape[:2]
-        factor = min(cols/w, rows*(1 if self.mode == "blocks" else 2)/h)
+        factor = min(cols/w, rows*2/h)
         width = max(1, min(cols, round(w*factor)))
         height = max(1, min(rows*2, round(h*factor)))
         if self.mode == "ascii":
