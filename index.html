@@ -24,9 +24,12 @@ button:focus-visible{outline:2px solid #ddd;outline-offset:3px}
 @media(max-width:720px){#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){#cards{grid-template-columns:1fr;max-width:330px}}
 @media(prefers-reduced-motion:reduce){.flower-card,#galleryButton,#closeGallery{transition:none}.flower-card:hover{transform:none}}
+#dedication{position:absolute;bottom:max(25px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:calc(100% - 36px);margin:0;padding:8px 0;color:#d4c6c8;text-align:center;font:italic 400 clamp(15px,2.6vw,24px)/1.4 Georgia,serif;letter-spacing:.025em}
+#galleryButton{bottom:max(76px,calc(env(safe-area-inset-bottom) + 70px))}
+@media(max-height:600px){#stage{padding-bottom:110px}#stage canvas{width:min(96vw,calc(100dvh - 120px),850px)}}
 </style>
 </head>
-<body><main id="stage"><canvas id="art" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button></main>
+<body><main id="stage"><canvas id="art" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button><p id="dedication">for you, in every season</p></main>
 <section id="gallery" aria-label="Flower gallery" hidden><button id="closeGallery" aria-label="Close gallery">×</button><div id="cards"></div></section>
 <script>
 "use strict";
