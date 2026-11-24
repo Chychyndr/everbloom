@@ -7,9 +7,27 @@
 <title>Flower</title>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#000}body{display:grid;place-items:center;height:100dvh}canvas{width: min(96vw,86dvh,850px);height:auto;aspect-ratio:1;display:block;touch-action:manipulation}
+[hidden]{display:none!important}
+#stage{position:fixed;inset:0;display:grid;place-items:center}
+#galleryButton,#closeGallery{font:500 13px ui-monospace,Consolas,monospace;color:#ddd;background:#090909;border:1px solid #333;border-radius:100px;cursor:pointer;transition:border-color .2s,color .2s,background .2s;touch-action:manipulation}
+#galleryButton{position:absolute;bottom:max(14px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:11px 24px;letter-spacing:.08em}
+#galleryButton:hover,#closeGallery:hover{border-color:#888;color:#fff;background:#151515}
+#gallery{position:fixed;inset:0;overflow:auto;background:#000;padding:64px clamp(12px,3vw,44px) 28px;overscroll-behavior:contain}
+#closeGallery{position:fixed;z-index:2;top:16px;right:clamp(12px,3vw,44px);width:38px;height:38px;font-size:23px;line-height:1}
+#cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;max-width:1360px;margin:auto}
+.flower-card{padding:0;border:1px solid #222;border-radius:13px;background:#000;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .2s;min-width:0;touch-action:manipulation}
+.flower-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.flower-card canvas{width:100%;height:auto;aspect-ratio:1;pointer-events:none;display:block}
+button:focus-visible{outline:2px solid #ddd;outline-offset:3px}
+@media(max-width:1150px){#cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:1000px){#cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:720px){#cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){#cards{grid-template-columns:1fr;max-width:330px}}
+@media(prefers-reduced-motion:reduce){.flower-card,#galleryButton,#closeGallery{transition:none}.flower-card:hover{transform:none}}
 </style>
 </head>
-<body><canvas id="art" role="img" aria-label="An animated gallery of flowers composed of colored characters"></canvas>
+<body><main id="stage"><canvas id="art" role="img" aria-label="An animated flower composed of colored characters"></canvas><button id="galleryButton" hidden>Gallery</button></main>
+<section id="gallery" aria-label="Flower gallery" hidden><button id="closeGallery" aria-label="Close gallery">×</button><div id="cards"></div></section>
 <script>
 "use strict";
 const canvas=document.querySelector("canvas"),ctx=canvas.getContext("2d",{alpha:false});
@@ -168,7 +186,7 @@ function titlePoints(name){
  return {out,width:cursor-1};
 }
 const titles=presets.map(p=>titlePoints(p[0]));
-function drawTitle(age,exit){
+function drawTitle(ctx,size,current,age,exit){
  const {out,width}=titles[current],color=presets[current][1];
  const cell=Math.min(size*.0105,size*.76/width,8.5);
  const left=(size-(width-1)*cell)/2,top=size*.085;
@@ -182,15 +200,11 @@ function drawTitle(age,exit){
  }
 }
 function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,devicePixelRatio||1);size=Math.max(1,rect.width);canvas.width=Math.round(size*dpr);canvas.height=Math.round(size*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
-function next(now=performance.now()){current=(current+1)%presets.length;begin=now;build(current);}
-function paint(now){
- let age=(now-begin)/1000;if(!motion.matches&&age>=24){next(now);age=0;}
- if(motion.matches)age=9;
- px=mix(px,tx,.055);py=mix(py,ty,.055);
+function renderScene(ctx,size,current,points,age,px=0,py=0,hold=false,preview=false){
  const angle=motion.matches?.22:Math.sin(age*.37)*.42+px*.28,cos=Math.cos(angle),sin=Math.sin(angle);
- const scale=size/745, exit=motion.matches?0:ease((age-20)/4);
+ const scale=size/745, exit=motion.matches||hold?0:ease((age-20)/4);
  ctx.fillStyle="#000";ctx.fillRect(0,0,size,size);
- const glyphSize=Math.max(4.2,Math.min(9,size/93));
+ const glyphSize=Math.max(2.5,Math.min(9,size/93));
  ctx.font="bold "+glyphSize+"px ui-monospace,Consolas,monospace";ctx.textAlign="center";ctx.textBaseline="middle";
  const cells=new Map(),step=glyphSize*.73,vertical=glyphSize*1.14;
  for(const p of points){
@@ -221,14 +235,71 @@ function paint(now){
  ctx.fillText(i%3? ".":"+",x,y);
  }
  }
- drawTitle(age,exit);
+ drawTitle(ctx,size,current,preview?9:age,preview?0:exit);
 }
-function frame(now){paint(now);if(!motion.matches&&!document.hidden)raf=requestAnimationFrame(frame);}
-function restart(){cancelAnimationFrame(raf);resize();frame(performance.now());}
+const stage=document.getElementById("stage"),gallery=document.getElementById("gallery"),galleryButton=document.getElementById("galleryButton"),closeGallery=document.getElementById("closeGallery"),cards=document.getElementById("cards");
+let view="stage",selected=false,finished=false,openedAt=0,pausedAt=0,lastPreview=-Infinity;
+const previews=[];
+function select(index,now=performance.now()){
+ current=index;begin=now;build(current);canvas.setAttribute("aria-label",presets[current][0]);
+}
+function next(now=performance.now()){
+ if(selected){select(current,now);return;}
+ if(current===presets.length-1){finished=true;galleryButton.hidden=false;return;}
+ select(current+1,now);
+}
+function paint(now){
+ let age=Math.max(0,(now-begin)/1000);
+ if(!motion.matches&&age>=24&&!finished){next(now);age=Math.max(0,(now-begin)/1000);}
+ if(motion.matches)age=9;
+ px=mix(px,tx,.055);py=mix(py,ty,.055);
+ const hold=!selected&&current===presets.length-1;
+ renderScene(ctx,size,current,points,age,px,py,hold);
+}
+function createCards(){
+ const saved=points;
+ presets.forEach(([name,color],index)=>{
+  build(index);const data=points;
+  const button=document.createElement("button");button.type="button";button.className="flower-card";button.setAttribute("aria-label",name);button.style.setProperty("--accent","rgb("+color.join(",")+")");
+  const preview=document.createElement("canvas");preview.setAttribute("aria-hidden","true");button.append(preview);cards.append(button);
+  previews.push({button,canvas:preview,ctx:preview.getContext("2d",{alpha:false}),points:data,index,size:0});
+  button.addEventListener("click",()=>{selected=true;finished=false;select(index);showStage();galleryButton.hidden=false;galleryButton.focus({preventScroll:true});});
+ });
+ points=saved;
+}
+function resizeCards(){
+ const dpr=Math.min(1.5,devicePixelRatio||1);
+ for(const p of previews){const w=p.canvas.getBoundingClientRect().width;if(w<=0)continue;p.size=w;p.canvas.width=Math.round(w*dpr);p.canvas.height=Math.round(w*dpr);p.ctx.setTransform(dpr,0,0,dpr,0,0);}
+}
+function paintCards(now){
+ if(now-lastPreview<50&&!motion.matches)return;lastPreview=now;
+ for(const p of previews){
+  const rect=p.canvas.getBoundingClientRect();if(!p.size||rect.bottom<0||rect.top>innerHeight)continue;
+  const age=motion.matches?9:((now-openedAt)/1000+5+p.index*.7)%24;
+  renderScene(p.ctx,p.size,p.index,p.points,age,0,0,false,true);
+ }
+}
+function openGallery(){
+ if(view==="gallery")return;pausedAt=performance.now();view="gallery";stage.hidden=true;gallery.hidden=false;
+ if(!previews.length)createCards();openedAt=performance.now();lastPreview=-Infinity;resizeCards();gallery.scrollTop=0;restart();closeGallery.focus({preventScroll:true});
+}
+function showStage(resume=false){
+ if(resume)begin+=performance.now()-pausedAt;
+ view="stage";gallery.hidden=true;stage.hidden=false;restart();
+}
+function frame(now){
+ if(view==="gallery")paintCards(now);else paint(now);
+ if(!motion.matches&&!document.hidden)raf=requestAnimationFrame(frame);
+}
+function restart(){cancelAnimationFrame(raf);if(view==="gallery"){resizeCards();lastPreview=-Infinity;}else resize();frame(performance.now());}
 canvas.addEventListener("pointermove",e=>{const r=canvas.getBoundingClientRect();tx=(e.clientX-r.left)/r.width*2-1;ty=(e.clientY-r.top)/r.height*2-1;});
 canvas.addEventListener("pointerleave",()=>{tx=ty=0;});
-document.addEventListener("click",()=>{next();if(motion.matches)paint(performance.now());});
-window.addEventListener("resize",restart);motion.addEventListener("change",restart);
+canvas.addEventListener("click",()=>{next();if(motion.matches)paint(performance.now());});
+galleryButton.addEventListener("click",openGallery);
+closeGallery.addEventListener("click",()=>{showStage(true);galleryButton.focus({preventScroll:true});});
+window.addEventListener("keydown",e=>{if(e.key==="Escape"){if(view==="gallery"){showStage(true);galleryButton.focus({preventScroll:true});}else if(selected)openGallery();}});
+gallery.addEventListener("scroll",()=>{if(motion.matches)paintCards(performance.now());},{passive:true});
+window.addEventListener("resize",restart);motion.addEventListener("change",()=>{galleryButton.hidden=!(finished||selected||motion.matches);restart();});
 document.addEventListener("visibilitychange",()=>{cancelAnimationFrame(raf);if(!document.hidden)restart();});
-build(current);restart();
+select(0);if(motion.matches)galleryButton.hidden=false;restart();
 </script></body></html>
